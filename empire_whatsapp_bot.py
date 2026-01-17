@@ -1,5 +1,7 @@
 # empire_whatsapp_bot.py
 # Fully deployable $0 WhatsApp automation bot for small businesses
+from intelligence import IntelligenceEngine
+intel_engine = IntelligenceEngine()
 
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
@@ -119,7 +121,9 @@ async def webhook(msg: IncomingMessage):
     elif "service" in msg.message.lower() or "help" in msg.message.lower():
         reply = "Great! I can automate your WhatsApp for appointments, FAQs, and customer follow-ups. Shall we start?"
     else:
-        reply = "Thanks for reaching out! Can you tell me your business type?"
+        analysis = intel_engine.analyze_message(msg.message, region)
+        reply = f"{analysis['recommendation']} Would you like me to set this up for you?"
+
 
     # Save interaction
     cursor.execute(
