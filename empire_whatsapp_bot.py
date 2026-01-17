@@ -1,5 +1,14 @@
+from analysis_engine import analyze_message
+from agents import AgentOrchestrator
+from cloning_engine import CloneManager
+
+agent_orchestrator = AgentOrchestrator()
+clone_manager = CloneManager()
+
 # empire_whatsapp_bot.py
 # Fully deployable $0 WhatsApp automation bot for small businesses
+from cloning_engine import CloneManager
+clone_manager = CloneManager()
 from agents import AgentOrchestrator
 agent_orchestrator = AgentOrchestrator()
 from intelligence import IntelligenceEngine
@@ -104,29 +113,35 @@ async def self_heal():
 
 # ----- MAIN BOT LOGIC -----
 @app.post("/webhook")
-async def webhook(msg: IncomingMessage):
-    phone = msg.phone
-    region = msg.region
-    lang = adapt_region(region)
+async def webhook(data: dict):
+    phone = data.get("phone")
+    message = data.get("message", "")
+    region = data.get("region", "Global")
 
-    # Save lead
-    cursor.execute(
-        "INSERT INTO leads (name, score, status, region, timestamp) VALUES (?, ?, ?, ?, ?)",
-        (phone, score_lead(msg.message), "new", region, str(datetime.utcnow()))
-    )
-    conn.commit()
-    lead_id = cursor.lastrowid
+    analysis = analyze_message(message, region)
 
-    # Example adaptive response
-    if "hello" in msg.message.lower():
-        reply = f"Hello! I'm {BOT_NAME}, here to help your business grow. Which service do you need today?"
-    elif "service" in msg.message.lower() or "help" in msg.message.lower():
-        reply = "Great! I can automate your WhatsApp for appointments, FAQs, and customer follow-ups. Shall we start?"
-    else:
-        analysis = intel_engine.analyze_message(msg.message, region)
-        agent_response = agent_orchestrator.route(analysis["intent"], analysis)
-        reply = f"{analysis['recommendation']} {agent_response}"
+    # CLONING HAS PRIORITY
+    if analysis["intent"] == "clone":
+        clone = clone_manager.create_clone(
+            region=analysis.get("region", "Global"),
+            niche=analysis.get("niche", "general"),
+            currency="KES" if analysis.get("region") == "Kenya" else "USD"
+        )
+        return {
+            "status": "success",
+            "reply": f"New business clone deployed for {clone['region']} in {clone['niche']} niche. Clone ID: {clone['clone_id']}"
+        }
 
+    # AGENT ROUTING
+    agent_response = agent_orchestrator.route(analysis["intent"], analysis)
+    reply = f"{analysis['recommendation']} {agent_response}"
+
+    return {
+        "status": "success",
+        "reply": reply
+    }
+
+             
 
 
     # Save interaction
