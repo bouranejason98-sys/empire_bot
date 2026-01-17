@@ -1,5 +1,7 @@
 # empire_whatsapp_bot.py
 # Fully deployable $0 WhatsApp automation bot for small businesses
+from agents import AgentOrchestrator
+agent_orchestrator = AgentOrchestrator()
 from intelligence import IntelligenceEngine
 intel_engine = IntelligenceEngine()
 
@@ -122,7 +124,9 @@ async def webhook(msg: IncomingMessage):
         reply = "Great! I can automate your WhatsApp for appointments, FAQs, and customer follow-ups. Shall we start?"
     else:
         analysis = intel_engine.analyze_message(msg.message, region)
-        reply = f"{analysis['recommendation']} Would you like me to set this up for you?"
+        agent_response = agent_orchestrator.route(analysis["intent"], analysis)
+        reply = f"{analysis['recommendation']} {agent_response}"
+
 
 
     # Save interaction
