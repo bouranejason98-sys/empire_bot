@@ -1,0 +1,59 @@
+name: Multi-Cloud Auto Sync
+
+on:
+  push:
+    branches: [main, production]
+  schedule:
+    - cron: '0 */6 * * *'  # Sync every 6 hours
+
+jobs:
+  deploy-render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Trigger Render Deploy
+        run: |
+          curl -X POST \
+            -H "Accept: application/json" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys"
+  
+  deploy-railway:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Railway
+        uses: railway/cli-action@v1.0.3
+        with:
+          railway-token: ${{ secrets.RAILWAY_TOKEN }}
+          service: empire-backend
+  
+  deploy-fly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Fly.io
+        uses: superfly/flyctl-actions@1.3
+        with:
+          args: "deploy --remote-only"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  
+  health-check:
+    runs-on: ubuntu-latest
+    needs: [deploy-render, deploy-railway, deploy-fly]
+    steps:
+      - name: Check All Deployments
+        run: |
+          echo "Checking service health..."
+          
+          # Check Render
+          curl -f https://empire-backend.onrender.com/health || echo "Render check failed"
+          
+          # Check Railway
+          curl -f https://empire-backend-production.up.railway.app/health || echo "Railway check failed"
+          
+          # Check Fly.io
+          curl -f https://empire-os.fly.dev/health || echo "Fly.io check failed"
+          
+          echo "All health checks completed"

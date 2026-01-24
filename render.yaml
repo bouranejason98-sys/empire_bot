@@ -1,0 +1,68 @@
+services:
+  # Main Backend API
+  - type: web
+    name: empire-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile.render
+    dockerContext: .
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: empire-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: empire-redis
+          property: connectionString
+      - key: RENDER
+        value: true
+      - key: PRIMARY_PLATFORM
+        value: true
+    healthCheckPath: /health
+    numInstances: 1
+
+  # Payment Orchestrator Microservice
+  - type: web
+    name: empire-payments
+    env: docker
+    dockerfilePath: ./payments/Dockerfile.render
+    dockerContext: .
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: PAYMENTS_DB_URL
+        fromDatabase:
+          name: payments-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+    routes:
+      - type: rewrite
+        source: /payments/*
+        destination: /payments/*
+
+  # PostgreSQL Database
+  - type: pgsql
+    name: empire-db
+    plan: free
+    ipAllowList: []
+
+  # Redis Cache
+  - type: redis
+    name: empire-redis
+    plan: free
+    ipAllowList: []
+
+  # Background Workers
+  - type: worker
+    name: empire-worker
+    env: docker
+    dockerfilePath: ./backend/Dockerfile.render
+    dockerContext: .
+    plan: free
+    autoDeploy: true
+    commands:
+      - python -m src.workers.main
