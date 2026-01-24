@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  empire-backend:
+    build: .
+    container_name: empire-backend
+    ports:
+      - "8000:8000"
+      - "8001:8001"  # Payment orchestrator
+    environment:
+      - APP_ENV=${APP_ENV}
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - MPESA_CONSUMER_KEY=${MPESA_CONSUMER_KEY}
+      - MPESA_CONSUMER_SECRET=${MPESA_CONSUMER_SECRET}
+      - MPESA_SHORTCODE=${MPESA_SHORTCODE}
+      - MPESA_PASSKEY=${MPESA_PASSKEY}
+      - MPESA_ENV=${MPESA_ENV}
+      - TRON_FULL_NODE=${TRON_FULL_NODE}
+      - TRON_PRIVATE_KEY=${TRON_PRIVATE_KEY}
+      - TRON_MASTER_WALLET=${TRON_MASTER_WALLET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+      - MAX_CLONES=${MAX_CLONES}
+      - MAX_DAILY_CONTENT=${MAX_DAILY_CONTENT}
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    networks:
+      - empire-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: empire-db
+    environment:
+      - POSTGRES_USER=empire
+      - POSTGRES_PASSWORD=ChangeThisPassword123
+      - POSTGRES_DB=empire
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - empire-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: empire-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - ./data/redis:/data
+    restart: unless-stopped
+    networks:
+      - empire-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: empire-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - empire-backend
+    restart: unless-stopped
+    networks:
+      - empire-network
+
+networks:
+  empire-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
