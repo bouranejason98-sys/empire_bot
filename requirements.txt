@@ -1,7 +1,7 @@
 # Core dependencies
-fastapi==0.104.1
+fastapi==0.115.0
 uvicorn[standard]==0.24.0
-pydantic==2.5.0
+pydantic==2.8.0
 sqlalchemy==2.0.23
 alembic==1.12.1
 python-jose[cryptography]==3.3.0
@@ -9,10 +9,10 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 
 # Payment providers
-tronpy==2.3.0
+tronpy==0.6.2
 requests==2.31.0
-stripe==7.6.1
-python-paypal==1.0.0
+stripe==7.6.0
+python-paypal-api==0.1.2
 
 # AI & ML
 openai==1.3.0
